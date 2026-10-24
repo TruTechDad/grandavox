@@ -1,0 +1,21 @@
+# Grandavox PostgreSQL development database
+
+services:
+  db:
+    image: postgres:17
+    container_name: grandavox-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+
+    ports:
+      - "127.0.0.1:5433:5432"
+
+    volumes:
+      - grandavox_data:/var/lib/postgresql/data
+
+volumes:
+  grandavox_data:
