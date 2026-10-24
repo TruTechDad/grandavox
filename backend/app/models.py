@@ -1,22 +1,43 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict
 
 
-class Event(BaseModel):
+class VenueResponse(BaseModel):
     """
-    Define the data contract for an entertainment event.
+    Define the public API representation of a venue.
 
-    FastAPI uses this model to validate and serialize
-    event data returned to API clients.
+    from_attributes allows Pydantic to read fields
+    directly from SQLAlchemy ORM objects.
     """
+
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
-    title: str = Field(min_length=1)
-    venue: str = Field(min_length=1)
-    location: str
+    name: str
+    city: str
+    state: str
+    capacity: int | None
+
+
+class EventResponse(BaseModel):
+    """
+    Define the event data returned to API clients.
+
+    The nested venue object provides useful venue
+    information without duplicating it in the database.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
     start_time: datetime
     category: str
     description: str
-    tickets_available: bool = True
+    tickets_available: bool
+
+    venue_id: int
+    venue: VenueResponse
+
