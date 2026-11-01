@@ -46,3 +46,62 @@ def test_get_missing_event(client):
     assert response.status_code == 404
     assert response.json()["detail"] == "Event not found"
 
+
+
+def test_create_event(client):
+    """A valid request creates an event and returns HTTP 201."""
+    event_data = {
+        "venue_id": 1,
+        "title": "Grandavox Comedy Night",
+        "start_time": "2026-12-22T20:00:00",
+        "category": "Comedy",
+        "description": "A fictional comedy performance.",
+        "tickets_available": True,
+    }
+
+    response = client.post("/events", json=event_data)
+
+    assert response.status_code == 201
+
+    created_event = response.json()
+
+    assert created_event["title"] == "Grandavox Comedy Night"
+    assert created_event["venue"]["name"] == "Grandavox Test Arena"
+    assert created_event["id"] > 0
+
+    # Confirm the record can also be retrieved.
+    get_response = client.get(
+        f"/events/{created_event['id']}"
+    )
+    assert get_response.status_code == 200
+
+
+def test_create_event_with_missing_venue(client):
+    """Reject events associated with nonexistent venues."""
+    event_data = {
+        "venue_id": 999,
+        "title": "Unknown Venue Event",
+        "start_time": "2026-12-22T20:00:00",
+        "category": "Music",
+        "description": "An event with an invalid venue.",
+    }
+
+    response = client.post("/events", json=event_data)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Venue not found"
+
+
+def test_create_event_with_invalid_data(client):
+    """Reject event requests containing invalid fields."""
+    event_data = {
+        "venue_id": -1,
+        "title": "",
+        "start_time": "not-a-date",
+        "category": "",
+        "description": "",
+    }
+
+    response = client.post("/events", json=event_data)
+
+    assert response.status_code == 422

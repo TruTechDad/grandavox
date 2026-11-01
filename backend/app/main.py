@@ -1,13 +1,15 @@
 
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
-from app.db_models import Event
-from app.models import EventResponse
+from app.db_models import Event, Venue
+from app.models import EventCreate, EventResponse
+
+
 
 
 app = FastAPI(
@@ -100,3 +102,48 @@ def get_event(event_id: int, db: DatabaseSession):
         )
 
     return event
+
+
+@app.post(
+    "/events",
+    response_model=EventResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        404: {"description": "Venue not found"},
+    },
+)
+def create_event(event_data: EventCreate, db: DatabaseSession):
+    """
+    Create a new entertainment event in PostgreSQL.
+
+    The event must reference an existing venue.
+    """
+
+    # Verify the selected venue exists before inserting.
+    venue = db.get(Venue, event_data.venue_id)
+
+    if venue is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Venue not found",
+        )
+
+    # Transform validated request data into a database entity.
+    new_event = Event(**event_data.model_dump())
+
+    db.add(new_event)
+
+    try:
+        # Save the new event and generate its database ID.
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+    # Reload database-generated values.
+    db.refresh(new_event)
+
+    # Attach venue information for response serialization.
+    new_event.venue = venue
+
+    return new_event
